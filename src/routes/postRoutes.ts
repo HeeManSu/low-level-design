@@ -15,7 +15,7 @@
 // export default userRoutes;
 
 import { Router } from "express";
-import { createPost, deletePost, getAllPosts, likePost, updatePost, unLikePost } from "../controllers/postController";
+import { createPost, deletePost, getAllPosts, likePost, updatePost, unLikePost, searchPosts } from "../controllers/postController";
 const postRoutes: Router = Router();
 
 postRoutes.post("/posts/create", createPost);
@@ -23,6 +23,7 @@ postRoutes.patch("/posts/:postId/update", updatePost);
 postRoutes.delete("/posts/:postId/delete", deletePost);
 postRoutes.post("/posts/:postId/like", likePost);
 postRoutes.post("/posts/:postId/unlike", unLikePost);
-postRoutes.get("/posts", getAllPosts);
+postRoutes.get("/:userId/posts/", getAllPosts);
+postRoutes.get("/posts/search", searchPosts);
 
 export default postRoutes;

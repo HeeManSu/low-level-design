@@ -53,24 +53,29 @@ export const followUser = async (
   next: NextFunction
 ) => {
   try {
-    const { userId } = req.params;
+    const { followingId } = req.params;
     const { followerId } = req.body;
 
-    if (!userId || !followerId) {
-      throw new Error("userId or followerId not found");
+    if (!followingId || !followerId) {
+      throw new Error("followingId or followerId not found");
     }
 
-    const userToFollow = userService.findUserFromIdDb(userId);
+    const userToFollow = await userService.findUserFromIdDb(followingId);
 
     if (!userToFollow) {
       return next(new ErrorHandlerClass("User to follow not found", 404));
     }
 
-    const follow = await userService.followUserDB(userId, followerId);
+    const follow = await userService.followUserDB(followingId, followerId);
 
+    // Fetch the updated user data with followers and following
+    const updatedUser = await userService.getUserWithFollowersAndFollowing(
+      followerId
+    );
     res.status(201).json({
       message: "User followed successfully",
       follow,
+      user: updatedUser,
     });
   } catch (error) {
     next(new ErrorHandlerClass("Unable to follow a user", 500));
@@ -102,7 +107,7 @@ export const unFollowUser = async (
       unfollow,
     });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     next(new ErrorHandlerClass("Unable to follow a user", 500));
   }
 };

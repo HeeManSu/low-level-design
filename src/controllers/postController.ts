@@ -134,7 +134,6 @@ export const likePost = async (
       return next(new ErrorHandlerClass("PostId or UserId not found", 404));
     }
 
-
     const likedPost: Post = await transaction(
       async (trx: Prisma.TransactionClient) => {
         return await trx.like.create({
@@ -197,9 +196,113 @@ export const getAllPosts = async (
   next: NextFunction
 ) => {
   try {
+    const {
+      page = "1",
+      limit = "10",
+      today = "false",
+      order = "desc",
+    } = req.query;
+    const { userId } = req.params;
+
+    const pageNumber = parseInt(page as string, 10);
+    const limitNumber = parseInt(limit as string, 10);
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const following = await prisma.follow.findMany({
+      where: {
+        followerId: userId as string,
+      },
+      select: {
+        followingId: true,
+      },
+    });
+
+    const followingIds = following.map((follow) => follow.followingId);
+
+    followingIds.push(userId as string);
+
+    const todayFilter =
+      today === "true"
+        ? {
+            createdAt: {
+              gte: new Date(new Date().setHours(0, 0, 0, 0)).toISOString(),
+              lte: new Date(new Date().setHours(23, 59, 59, 999)).toISOString(),
+            },
+          }
+        : {};
     const allPosts: Post[] = await transaction(
       async (trx: Prisma.TransactionClient) => {
         const posts = await trx.post.findMany({
+          where: {
+            authorId: {
+              in: followingIds,
+            },
+            ...todayFilter,
+          },
+          skip: skip,
+          take: limitNumber,
+          orderBy: {
+            createdAt: order as "asc" | "desc",
+          },
+          include: {
+            likes: true,
+            comments: true,
+            _count: {
+              select: { likes: true, comments: true },
+            },
+          },
+        });
+        return posts;
+      }
+    );
+
+    const totalPosts = await prisma.post.count({
+      where: {
+        authorId: {
+          in: followingIds,
+        },
+        ...todayFilter,
+      },
+    });
+
+    res.status(201).json({
+      message: "All posts fetched",
+      posts: allPosts,
+      totalPages: Math.ceil(totalPosts / limitNumber),
+      currentPage: pageNumber,
+    });
+  } catch (error) {
+    console.log(error);
+    return next(new ErrorHandlerClass("Unable to get all post", 500));
+  }
+};
+
+export const searchPosts = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { query } = req.query;
+    assert(query, "Query is required");
+
+    const posts: Post[] = await transaction(
+      async (trx: Prisma.TransactionClient) => {
+        const posts = await trx.post.findMany({
+          where: {
+            OR: [
+              {
+                title: {
+                  contains: query as string,
+                },
+              },
+              {
+                content: {
+                  contains: query as string,
+                },
+              },
+            ],
+          },
           include: {
             likes: true,
             comments: true,
@@ -213,10 +316,10 @@ export const getAllPosts = async (
     );
 
     res.status(201).json({
-      message: "All posts fetched",
-      posts: allPosts,
+      message: "Posts fetched",
+      posts,
     });
   } catch (error) {
-    return next(new ErrorHandlerClass("Unable to get all post", 500));
+    return next(new ErrorHandlerClass("Unable to search post", 500));
   }
 };

@@ -51,8 +51,30 @@ class UserService {
   async followUserDB(userId: string, followerId: string): Promise<Follow> {
     return await prisma.follow.create({
       data: {
-        followerId,
+        followerId: followerId,
         followingId: userId,
+      },
+      include: {
+        follower: true,
+        following: true,
+      },
+    });
+  }
+
+  async getUserWithFollowersAndFollowing(userId: string): Promise<User | null> {
+    return await prisma.user.findUnique({
+      where: { userId },
+      include: {
+        follower: {
+          include: {
+            follower: true,
+          },
+        },
+        following: {
+          include: {
+            following: true,
+          },
+        },
       },
     });
   }
@@ -61,6 +83,10 @@ class UserService {
     return await prisma.follow.delete({
       where: {
         id: unFollowerId,
+      },
+      include: {
+        follower: true,
+        following: true,
       },
     });
   }
