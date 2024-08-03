@@ -14,10 +14,58 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  firstName String
-  lastName  String
+  userId    String   @id @default(uuid())
+  name      String?
   email     String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  posts     Post[]
+  likes     Like[]
+  commet    Commet[]
+  follower  Follow[] @relation("followerRelation")
+  following Follow[] @relation("followingRelation")
+}
+
+model Post {
+  postId    String   @id @default(uuid())
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [userId])
+  likes     Like[]
+  comments  Commet[]
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [postId])
+  user User @relation(fields: [userId], references: [userId])
+}
+
+model Commet {
+  commentId String   @id @default(uuid())
+  content   String
+  postId    String
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post   Post @relation(fields: [postId], references: [postId])
+  author User @relation(fields: [authorId], references: [userId])
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  follower  User @relation("followerRelation", fields: [followerId], references: [userId])
+  following User @relation("followingRelation", fields: [followingId], references: [userId])
 }
