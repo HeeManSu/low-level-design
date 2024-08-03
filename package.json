@@ -21,6 +21,7 @@
     "@metacall/faas": "^0.1.0",
     "@prisma/client": "^5.17.0",
     "express": "^4.19.2",
-    "prisma": "^5.17.0"
+    "prisma": "^5.17.0",
+    "zod": "^3.23.8"
   }
 }
